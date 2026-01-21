@@ -1,0 +1,123 @@
+# User-defined configuration file; things here depend on where your files are etc.
+
+# Where the RDSF is mounted - for reading the data + creating DICOMs
+# The create_dicoms.py script creates these
+rdsf_dir: "/home/mh19137/zebrafish_rdsf/"
+
+# We will create DICOM files holding our training data to make the rest of the analysis more convenient.
+# This tells us where to store them.
+#
+# You might notice that they are very similar to the `label_dirs` entry in `config.yml`
+dicom_dirs:
+  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 2/"
+  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 3 (base of jaw)/"
+  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 4 (Wahab resegmented by felix)/"
+
+# For fine-tuning: where the quadrate DICOMs will go
+quadrate_dir: "/home/mh19137/zebrafish_jaw_segmentation/dicoms/quadrates/"
+
+# Must end in .pkl (the model will be pickled)
+# The model will be saved in the model/ directory
+model_path: "attempt_n11.pkl"
+
+# Which ones to use for testing and validation
+# all the others will be used for testing
+validation_dicoms:
+ - "39"  # 7 month wt, originally labelled by Wahab
+
+# At the moment this can only be 1-length
+test_dicoms:
+ - "131"  # 2.5yr het chst11 chst11 talen
+
+# Optimiser options
+optimiser: "Adam"  # Must be one of the torch.optim optimiser
+learning_rate: 0.001
+
+# Loss function options
+loss: "monai.losses.TverskyLoss"
+loss_options: {
+  "include_background": false,
+  "to_onehot_y": true,
+  "alpha": 0.20,
+  "beta": 0.80,
+  "sigmoid": true,
+}
+
+# RNG seeds
+# Note that this still doesn't guarantee reproducibility,
+# since the dataloaders and probably some algorithms/other things have different sources
+# of randomness
+# Not entirely sure what this does, in that case. But I've kept it
+torch_seed: 0
+test_train_seed: 1
+
+# Options for the model that you might want to change
+# These are sort of like meta-parameters so they're not in the model_params section but maybe they should be
+device: "cuda"
+window_size: "192,192,192"  # Comma-separated ZYX. Needs to be large enough to hold the whole jaw
+patch_size: "160,160,160"  # Bigger holds more context, smaller is faster and allows for bigger batches
+batch_size: 12
+epochs: 600
+lr_lambda: 0.99999  # Exponential decay factor (multiplicative with each epoch)
+num_workers: 6  # Number of workers for the dataloader
+
+# Data augmentation
+transforms:
+  torchio.RandomFlip:
+    axes: [0, 1, 2]
+    flip_probability: 0.5
+  torchio.RandomAffine:
+    p: 0.25
+    degrees: 10
+    scales: 0.2
+# Other options might be
+# torchio.RandomBlur(p=0.3),
+# torchio.RandomBiasField(0.4, p=0.5),
+# torchio.RandomNoise(0.1, 0.01, p=0.25),
+# torchio.RandomGamma((-0.3, 0.3), p=0.25),
+# torchio.ZNormalization(),
+# torchio.RescaleIntensity(percentiles=(0.5, 99.5)),
+
+# The main meat of the model params
+model_params:
+  # Choose which model to use, as a python-like module string
+  # could be something like "monai.networks.nets.AttentionUnet"
+  # or "fishlib.models.model.MySpecialNewModel" (this doesn't exist yet)
+  model_name: "monai.networks.nets.AttentionUnet"
+
+  # Things you probably won't need to change - I just kept them here to keep all the params in one place
+  spatial_dims: 3
+  n_classes: 2  # n bones + background
+  in_channels: 1  # Our images are greyscale
+
+  # Things you might want to change
+  # With an input patch size of 160^3, you can't have more than 6 layers in the model because the receptive field
+  # gets halved and ends up being an odd number, and then when we upsample we get a size mismatch
+  # i.e. we get 160 -> 80 -> 40 -> 20 -> 10 -> 5 and can't go any further
+  n_layers: 6
+  n_initial_channels: 8
+  kernel_size: 3
+  stride: 2
+  dropout: 0.01
+
+# Settings for the jaw location model
+# This should really be its own config file, shouldn't it? But it isn't
+jaw_loc_config:
+  # We don't need the whole full-resolution image just to find the jaw
+  # So make it tractable by downsampling
+  downsampled_dicom_size: [512, 128, 128]
+  # Size of the Gaussian that we start by putting at the point of interest
+  # As training progresses and the model gets better, this will shrink (i.e.
+  # the model initially learns the rough location and then narrows it down)
+  initial_kernel_size: 8
+
+  batch_size: 8
+  n_workers: 10
+  device: "cuda"
+  learning_rate: 0.0001
+  num_epochs: 250
+  # Repeated from above ew
+  crop_size: [192, 192, 192]
+  dicom_dirs:
+    - "dicoms/Training set 2"
+    - "dicoms/Training set 4 (Wahab resegmented by felix)"

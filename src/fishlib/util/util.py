@@ -1,0 +1,90 @@
+"""
+Very general utilities
+
+"""
+
+import pathlib
+import importlib
+from typing import Callable, Any
+from functools import wraps
+
+import yaml
+
+
+def call_once(func: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Decorator to ensure a function is only called once
+
+    :param func: function to be decorated
+    :returns: the decorated function - does the same thing as the input function
+    :raises RuntimeError: if the function has already been called in this process
+
+    """
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if not wrapper.called:
+            wrapper.called = True
+            return func(*args, **kwargs)
+        raise RuntimeError(f"{func.__name__} has already been called")
+
+    wrapper.called = False
+    return wrapper
+
+
+def rootdir() -> pathlib.Path:
+    """
+    Root dir of this git repo
+
+    """
+    return pathlib.Path(__file__).parents[3]
+
+
+@call_once
+def userconf() -> dict[str, Any]:
+    """
+    Get the user configuration.
+
+    Can only be called once - this is to guarantee that we don't accidentally
+    have any dependencies on the user config file.
+    Otherwise, there might be a mixture of explicit and implicit dependence
+    on the contents of the config file, which might lead to obscure bugs
+    or things happening that we didn't expect, such as in the hyperparameter
+    tuning script.
+
+    :returns: The user configuration
+    :raises: RuntimeError if called more than once
+
+    """
+    with open(rootdir() / "userconf.yml", "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def config() -> dict[str, Any]:
+    """
+    Get the global config
+
+    :returns: The config
+
+    """
+    with open(rootdir() / "config.yml", "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def load_class(name: str) -> Any:
+    """
+    Load a class from a module given a string.
+
+    We'll use this to load the model from monai - it is specified in the config file
+    as a string, so we will want to convert from a string to a python object.
+
+    :param name: the name of the class to load. Should be in the format module.class,
+                 where module can also contain "."s (e.g. module.submodule.class)
+    :returns: the class object
+
+    """
+    module_path, class_name = name.rsplit(".", 1)
+
+    module = importlib.import_module(module_path)
+
+    return getattr(module, class_name)

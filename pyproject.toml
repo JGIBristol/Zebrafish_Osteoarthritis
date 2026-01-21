@@ -43,6 +43,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "statsmodels>=0.14.5",
     "nbdime>=4.0.2",
+    "imagecodecs>=2026.1.14",
 ]
 
 [dependency-groups]
@@ -53,6 +54,3 @@ dev = [
     "mypy>=1.5.0",
     "types-PyYAML>=6.0.0",
 ]
-
-[tool.hatchling.build.targets.wheel]
-packages = ["fishlib"]

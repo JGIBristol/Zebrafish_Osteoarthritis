@@ -1,0 +1,35 @@
+# Hard-coded configuration bits
+# e.g. RDSF filepaths, output directories and fish that I decided we want to exclude
+# from the training set
+
+# You shouldn't need to change these
+# User-defined configuration (i.e. things for changing the model, or choosing filepaths
+# on your system) is in userconf.yml
+
+# Directories where the masks are read from on the RDSF
+# Relative to the RDSF mount point
+label_dirs:
+ - "1Felix and Rich make models/Training dataset Tiffs/Training set 2"
+ - "1Felix and Rich make models/Training dataset Tiffs/Training set 3 (base of jaw)"
+ - "1Felix and Rich make models/Training dataset Tiffs/Training set 4 (Wahab resegmented by felix)"
+
+ct_scan_dir: "1Felix and Rich make models/wahabs_scans"
+2d_scan_dir: "DATABASE/uCT/Wahab_clean_dataset/low_res_clean_v3/"
+wahab_dicom_dir: "DATABASE/uCT/Wahab_clean_dataset/DICOMS/"
+
+# Where random stuff from the scripts should go, relative to the root of the repository
+script_output: "script_output/"
+boring_script_output: "script_output/boring_stuff/"
+
+# This fish is in two training sets, so we need to remove it from one of them
+duplicate_ids:
+ - 39
+
+broken_ids:
+# The label and image shape don't match up here (training set 2)
+ - 166
+# The label tiffs here are broken (training set 3), so we need to remove them
+ - 36
+ - 69
+ - 90
+ - 92
