@@ -218,7 +218,7 @@ def script_out_dir() -> pathlib.Path:
     :returns: Path to the directory
 
     """
-    retval = pathlib.Path(__file__).parents[2] / "script_output"
+    retval = pathlib.Path(__file__).parents[3] / "script_output"
     if not retval.is_dir():
         retval.mkdir()
     return retval

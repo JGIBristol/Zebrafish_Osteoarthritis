@@ -9,9 +9,9 @@ rdsf_dir: "/home/mh19137/zebrafish_rdsf/"
 #
 # You might notice that they are very similar to the `label_dirs` entry in `config.yml`
 dicom_dirs:
-  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 2/"
-  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 3 (base of jaw)/"
-  - "~/Zebrafish_Osteoarthritis/dicoms/Training set 4 (Wahab resegmented by felix)/"
+  - "dicoms/Training set 2/"
+  - "dicoms/Training set 3 (base of jaw)/"
+  - "dicoms/Training set 4 (Wahab resegmented by felix)/"
 
 # For fine-tuning: where the quadrate DICOMs will go
 quadrate_dir: "/home/mh19137/zebrafish_jaw_segmentation/dicoms/quadrates/"
@@ -118,6 +118,8 @@ jaw_loc_config:
   num_epochs: 250
   # Repeated from above ew
   crop_size: [192, 192, 192]
+  # We don't want to train the locator model on the partial jaws
+  # So these are just the training sets which contain the complete jaw
   dicom_dirs:
     - "dicoms/Training set 2"
     - "dicoms/Training set 4 (Wahab resegmented by felix)"
