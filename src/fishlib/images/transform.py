@@ -38,8 +38,8 @@ def jaw_centres() -> pd.DataFrame:
     Read the location of the jaw centres from file
 
     """
-    csv_path = pathlib.Path(__file__).parents[2] / "data" / "jaw_centres.csv"
-    return pd.read_csv(csv_path, skiprows=5).set_index("n")
+    csv_path = pathlib.Path(__file__).parents[3] / "data" / "jaw_centres.csv"
+    return pd.read_csv(csv_path, skiprows=7).set_index("n")
 
 
 def centre(n: int) -> tuple[int, int, int]:

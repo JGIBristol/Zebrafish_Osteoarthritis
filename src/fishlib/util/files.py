@@ -190,6 +190,19 @@ def wahab_dicoms_dir(config: dict[str, Any]) -> pathlib.Path:
     return rdsf_dir(config) / util.config()["wahab_dicom_dir"]
 
 
+def script_out_dir() -> pathlib.Path:
+    """
+    Get the directory where the output of scripts is stored, creating it if it doesn't exist
+
+    :returns: Path to the directory
+
+    """
+    retval = pathlib.Path(__file__).parents[3] / "script_output"
+    if not retval.is_dir():
+        retval.mkdir()
+    return retval
+
+
 def model_path(config: dict[str, Any]) -> pathlib.Path:
     """
     Get the path to the cached model, as created by scripts/train_model.py
@@ -208,20 +221,8 @@ def model_path(config: dict[str, Any]) -> pathlib.Path:
     if not path.endswith(".pkl"):
         path = path + ".pkl"
 
-    return pathlib.Path(__file__).parents[2] / "model" / path
-
-
-def script_out_dir() -> pathlib.Path:
-    """
-    Get the directory where the output of scripts is stored, creating it if it doesn't exist
-
-    :returns: Path to the directory
-
-    """
-    retval = pathlib.Path(__file__).parents[3] / "script_output"
-    if not retval.is_dir():
-        retval.mkdir()
-    return retval
+    model_name = path[:-4]
+    return script_out_dir() / "jaw_models" / model_name / path
 
 
 def boring_script_out_dir() -> pathlib.Path:
@@ -232,7 +233,7 @@ def boring_script_out_dir() -> pathlib.Path:
     :returns: Path to the directory
 
     """
-    retval = pathlib.Path(__file__).parents[2] / "boring_script_output"
+    retval = pathlib.Path(__file__).parents[3] / "boring_script_output"
     if not retval.is_dir():
         retval.mkdir()
     return retval
@@ -292,4 +293,4 @@ def repeat_training_result_table_path() -> pathlib.Path:
     Get the path to the repeat training result table
 
     """
-    return pathlib.Path(__file__).parents[2] / "data" / "repeat_training_summary.pkl"
+    return pathlib.Path(__file__).parents[3] / "data" / "repeat_training_summary.pkl"
