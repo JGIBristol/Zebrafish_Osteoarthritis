@@ -136,13 +136,14 @@ def main(model_name: str, debug_plots: bool, dont_shrink_heatmap: bool) -> None:
     for parent_dir in parent_dirs:
         parent_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define where the outputs should go
-    out_dir = files.script_out_dir() / "jaw_location" / model_name
-    model_path = out_dir / f"{model_name}.pth"
+    # Define where the outputs should go - the model path...
+    model_path = files.jaw_locator_model_path(model_name)
     if model_path.exists():
         raise FileExistsError(
             f"Model already exists at {model_path}, please delete it or use a different name."
         )
+    # ...and the directory for plots
+    out_dir = model_path.parent
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # Get the training and validation data
