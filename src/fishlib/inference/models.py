@@ -15,7 +15,7 @@ import torchio as tio
 
 from ..util import files
 from ..model import data
-from ..model.model import ModelState, load_model, predict
+from ..model.model import ModelState, load_model, predict, activation_name
 from ..localisation.model import get_model, crop
 from ..images.metrics import largest_connected_component
 
@@ -96,3 +96,58 @@ def crop_object(
         window_size=window_size,
     )
 
+
+def segment_object(
+    segmentor_model: ModelState,
+    cropped_ct_scan: np.ndarray,
+    *,
+    threshold: float | None = 0.5,
+    largest_component: bool = True,
+) -> np.ndarray:
+    """
+    Segment an object from a cropped CT scan
+
+    Thresholds the model's output at 0.5, and takes the largest connected component
+    after this thresholding.
+
+    :param cropped_ct_scan: 3D CT scan to perform inference on
+    :param segmentor_model: trained model for performing segmentation
+    :param threshold: either a float, in which case the output is thresholded, or None
+                      in which case the model's output is not thresholded and will return
+                      a floating-point array rather than a binary mask.
+    :param largest_component: whether to take the largest connected component in the
+                              predicted mask. A threshold must be provided if this is `True`.
+
+    :returns: a numpy array of model predictions
+    :raises: InferenceError if `largest_connected_component` is `True` but no threshold is provided
+             (it makes no sense to take the largest connected component of a float image).
+    """
+    if largest_component and threshold is None:
+        raise InferenceError(
+            "Cannot take the largest connected component unless model output is thresholded"
+        )
+
+    # Get the config from the model
+    config = segmentor_model.config
+
+    # Turn the image into a Subject that we can perform inference on
+    scaled = data.ints2float(cropped_ct_scan)
+    tensor = torch.as_tensor(scaled, dtype=torch.float32).unsqueeze(0)
+    subject = tio.Subject(image=tio.Image(tensor=tensor, type=tio.INTENSITY))
+
+    prediction = predict(
+        jaw_segment_model,
+        subject,
+        # Perform inference with the same settings we trained with
+        patch_size=config["patch_size"],
+        patch_overlap=config["patch_overlap"],
+        activation=model.activation_name(config),
+    )
+
+    if threshold is not None:
+        prediction = prediction > threshold
+
+    if largest_component:
+        prediction = largest_connected_component(prediction)
+
+    return prediction
