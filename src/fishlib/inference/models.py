@@ -52,3 +52,18 @@ def get_jaw_loc_model(model_name: str*, device: str) -> torch.nn.Module:
     model.eval()
     return model
 
+
+@functools.cache
+def get_jaw_segment_model(segment_model_name: str, *, device: str) -> torch.nn.Module:
+    """
+    Get a segmentation model.
+
+    :param segment_model_name: the name of the segmentation model, as chosen when the model
+                               was trained.
+    :param device: either "cuda" to run on GPU or "cpu"
+    :returns: trained jaw segmentation model
+    """
+    # Slightly confusing - the `load_model()` function returns a `ModelState`` object,
+    # which has a `load_model` attribute that returns the neural network
+    return load_model(segment_model_name).load_model(set_eval=True).to(device)
+
