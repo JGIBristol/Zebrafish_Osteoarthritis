@@ -67,3 +67,34 @@ def get_jaw_segment_model(segment_model_name: str, *, device: str) -> torch.nn.M
     # which has a `load_model` attribute that returns the neural network
     return load_model(segment_model_name).load_model(set_eval=True).to(device)
 
+
+def crop_object(
+    locator_model: torch.nn.Module,
+    ct_scan: np.ndarray,
+    *,
+    locator_input_size: tuple[int, int, int],
+    window_size: tuple[int, int, int],
+) -> np.ndarray:
+    """
+    Crop the region of interest from the CT scan using the model.
+
+    Performs inference on the device that the model is on - this might
+    give unexpected results if the model is on multiple devices.
+
+    :param jaw_loc_model: the model used to locate an object in a CT scan
+    :param ct_scan: 3D greyscale numpy array - the input data
+    :param locator_input_size: the size of the input to the locator model.
+                               This model is trained on downsampled images,
+                               so we need to downsample the input to this size
+                               when we run inference.
+    :param window_size: size of the returned cropped image.
+
+    :returns: 3D numpy array of the cropped image
+    """
+    return crop(
+        locator_model,
+        ct_scan,
+        model_input_size=locator_input_size,
+        window_size=window_size,
+    )
+
