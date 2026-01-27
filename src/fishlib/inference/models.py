@@ -15,7 +15,7 @@ import torchio as tio
 
 from ..util import files
 from ..model import data
-from ..model.model import load_model, predict
+from ..model.model import ModelState, load_model, predict
 from ..localisation.model import get_model, crop
 from ..images.metrics import largest_connected_component
 
@@ -54,7 +54,7 @@ def get_jaw_loc_model(model_name: str*, device: str) -> torch.nn.Module:
 
 
 @functools.cache
-def get_jaw_segment_model(segment_model_name: str, *, device: str) -> torch.nn.Module:
+def get_jaw_segment_model(segment_model_name: str, *, device: str) -> ModelState:
     """
     Get a segmentation model.
 
@@ -63,9 +63,7 @@ def get_jaw_segment_model(segment_model_name: str, *, device: str) -> torch.nn.M
     :param device: either "cuda" to run on GPU or "cpu"
     :returns: trained jaw segmentation model
     """
-    # Slightly confusing - the `load_model()` function returns a `ModelState`` object,
-    # which has a `load_model` attribute that returns the neural network
-    return load_model(segment_model_name).load_model(set_eval=True).to(device)
+    return load_model(segment_model_name)
 
 
 def crop_object(
