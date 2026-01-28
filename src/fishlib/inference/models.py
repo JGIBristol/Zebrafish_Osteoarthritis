@@ -27,7 +27,7 @@ class InferenceError(Exception):
 
 
 @functools.cache
-def get_jaw_loc_model(model_name: str*, device: str) -> torch.nn.Module:
+def get_jaw_loc_model(model_name: str, device: str) -> torch.nn.Module:
     """
     Get the network used to locate the jaw in a CT scan
 
