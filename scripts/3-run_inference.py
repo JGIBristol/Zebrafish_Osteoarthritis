@@ -4,7 +4,25 @@ jaw and segment it out
 
 Saves the cropped jaw TIF and segmentation mask
 """
+
+import pathlib
 import argparse
+
+
+def main(
+    locator_model: str,
+    segmentation_model: str,
+    input_data: str,
+    two_d_images: bool,
+    crop_size: int,
+    device: str,
+    output_dir: pathlib.Path,
+):
+    """
+    """
+    # Make out_dir if we need to
+    output_dir.mkdir(parents=True, exist_ok=True)
+
 
 
 if __name__ == "__main__":
