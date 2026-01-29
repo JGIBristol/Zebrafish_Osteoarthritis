@@ -45,6 +45,71 @@ def main(
     # Make out_dir if we need to
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Get the models
+    # Read in input(s)
+    #   - turn 2d into array
+    #   - turn 3d into array
+    #   - turn dicom into array
+    # or a list of the above
+    # Iterate over objects; make 1-item list if we need to
+    # Find object
+    # Crop it out
+    # Save images
+
+    img_out_dir = out_dir / "imgs"
+    mask_out_dir = out_dir / "masks"
+
+    img_out_dir.mkdir(parents=True, exist_ok=True)
+    mask_out_dir.mkdir(parents=True, exist_ok=True)
+
+    # Get the input dir
+    # TODO this should be provided on the CLI
+    config = util.userconf()
+    input_dir = (
+        pathlib.Path(config["rdsf_dir"])
+        / "DATABASE"
+        / "uCT"
+        / "Wahab_clean_dataset"
+        / "TIFS"
+    )
+
+    # Get the models
+    loc_model = models.get_jaw_loc_model(locator_model_name, device=device)
+    seg_model = models.get_jaw_segment_model(device=device)
+
+    for img_path in tqdm(sorted(list(input_dir.glob("*.tif")))):
+        name = img_path.name
+        if (img_out_dir / name).exists() and (mask_out_dir / name).exists():
+            print(f"Skipping {name}")
+            continue
+
+        try:
+            scan = tifffile.imread(img_path)
+        except ValueError as e:
+            print(
+                f"Error reading {name}; is the tiff file incomplete?\n{str(e)}",
+                file=sys.stderr,
+            )
+            continue
+
+        # Crop the image
+        try:
+            cropped = models.crop_object(
+                loc_model, scan, window_size=tuple([crop_size] * 3)
+            )
+        except CropOutOfBoundsError as e:
+            print(
+                f"Error cropping {name}; likely an issue with the jaw localising model\n{str(e)}",
+                file=sys.stderr,
+            )
+            continue
+
+        # Run inference
+        prediction = models.segment_jaw(cropped, seg_model)
+
+        # Save
+        tifffile.imwrite(img_out_dir / name, cropped)
+        tifffile.imwrite(mask_out_dir / name, prediction)
 
 
 if __name__ == "__main__":
@@ -64,16 +129,17 @@ if __name__ == "__main__":
         "input_data",
         type=str,
         help="""Which data to run the segmentation pipeline on. Can be:
-  - the path to a DICOM file (ending in .dcm)
-  - the path to a .tif image (ending in .tif)
-  - the path to a directory holding 3d tif images
+  - the path to a 3D .tif image (ending in .tif)
+  - the path to a DICOM file (ending in .dcm).
+    This must have the right attributes set - see `fishlib.images.io.read_dicom` for details.
   - the path to a directory holding 2d tif images*
-  - a text file containing paths to .tif images, either:
-        - paths to 3D tif images
-        - paths to directories containing 2D tif images*
+
+The input data can also be several images:
+  - a text file where each line is any of the above
+  - the path to a directory holding multiple 3d tif images
 
 *If a directory of 2d images is provided, the slices must be in alphabetical
- order and the --two-d-images flag must be provided below.
+ order and the `--two-d-images` flag must be provided as well.
              """,
     )
 
