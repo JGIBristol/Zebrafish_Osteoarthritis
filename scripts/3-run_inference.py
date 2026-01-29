@@ -18,8 +18,16 @@ each of the scans in Wahab's directory on the RDSF.
 
 """
 
+import sys
 import pathlib
 import argparse
+import tifffile
+
+from tqdm import tqdm
+
+from fishlib.util import files, util
+from fishlib.inference import models
+from fishlib.images.transform import CropOutOfBoundsError
 
 
 def main(

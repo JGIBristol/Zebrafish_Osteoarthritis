@@ -4,10 +4,16 @@ Input/output helper functions.
 
 import pathlib
 
+import tifffile
 import numpy as np
 
 from ..images.io import read_dicom
 
+
+def _2d_images_to_array(input_dir: pathlib.Path):
+    """
+    Convert a directory of TIF images to an array
+    """
 
 
 def convert_input_to_array(input_path: pathlib.Path):
@@ -35,6 +41,6 @@ def convert_input_to_array(input_path: pathlib.Path):
         return image
 
     if input_path.suffix == ".tif":
-        ...
+        return tifffile.imread(input_path)
 
     raise ValueError(f"Failed to convert {input_path} to array")
