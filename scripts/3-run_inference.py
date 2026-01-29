@@ -1,8 +1,21 @@
 """
-Read in full-size CT scans from Wahab's 3D TIF directory, locate the
-jaw and segment it out
+Run inference with our segmentation pipeline.
 
-Saves the cropped jaw TIF and segmentation mask
+There are two steps to the segmentation:
+ - locate the object of interest (e.g. the head) and crop it out
+ - segment out the bone (e.g. the jaw)
+As such, you will need to provide the names of two models to do these two steps.
+
+Saves the cropped TIF and the segmentation mask to the provided location.
+
+To run it on a large dataset of jaws, run:
+```
+uv run scripts/3-run_inference.py locator my_cool_model -d cuda \
+<YOUR RDSF MOUNT POINT>/zebrafish_rdsf/DATABASE/uCT/Wahab_clean_dataset/TIFS/
+```
+This will use the `locator` and `my_cool_model` models respectively to crop/segment
+each of the scans in Wahab's directory on the RDSF.
+
 """
 
 import pathlib
