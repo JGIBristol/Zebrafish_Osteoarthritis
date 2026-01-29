@@ -6,6 +6,9 @@ import pathlib
 
 import numpy as np
 
+from ..images.io import read_dicom
+
+
 
 def convert_input_to_array(input_path: pathlib.Path):
     """
@@ -15,7 +18,7 @@ def convert_input_to_array(input_path: pathlib.Path):
     The input might either be:
      - a dicom file or 3d TIF (which are easy)
      - a directory containing 2d TIFs (which is a bit harder)
-    
+
     :param input_path: the input filepath. If this ends in .dcm or .tif we
                        will assume it is a single 3d image; if it is a directory
                        we will assume it contains 2d tif images. 2d images
@@ -24,3 +27,14 @@ def convert_input_to_array(input_path: pathlib.Path):
     :returns: a 3d array representing the image.
 
     """
+    if input_path.is_dir():
+        ...
+
+    if input_path.suffix == ".dcm":
+        image, _ = read_dicom(input_path)
+        return image
+
+    if input_path.suffix == ".tif":
+        ...
+
+    raise ValueError(f"Failed to convert {input_path} to array")
