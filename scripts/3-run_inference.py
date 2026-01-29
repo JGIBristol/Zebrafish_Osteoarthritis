@@ -33,7 +33,7 @@ from fishlib.images.transform import CropOutOfBoundsError
 def main(
     locator_model: str,
     segmentation_model: str,
-    input_data: str,
+    input_data: pathlib.Path,
     two_d_images: bool,
     crop_size: int,
     device: str,
@@ -54,6 +54,13 @@ def main(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Get the models
+
+    # We have multiple input if we have a text file
+    # OR if we have a directory not containing 2d images
+    multiple_inputs = (input_data.suffix == "txt") or (
+        input_data.is_dir() and not two_d_images
+    )
+
     # Read in input(s)
     #   - turn 2d into array
     #   - turn 3d into array
@@ -135,7 +142,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "input_data",
-        type=str,
+        type=pathlib.Path,
         help="""Which data to run the segmentation pipeline on. Can be:
   - the path to a 3D .tif image (ending in .tif)
   - the path to a DICOM file (ending in .dcm).
@@ -144,10 +151,12 @@ if __name__ == "__main__":
 
 The input data can also be several images:
   - a text file where each line is any of the above
-  - the path to a directory holding multiple 3d tif images
+  - the path to a directory holding 3d Images (TIF or DICOM)
 
 *If a directory of 2d images is provided, the slices must be in alphabetical
  order and the `--two-d-images` flag must be provided as well.
+
+ You can't provide a directory of directories of 2D images. Sorry.
              """,
     )
 
