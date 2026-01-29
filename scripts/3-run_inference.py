@@ -56,6 +56,14 @@ if __name__ == "__main__":
         help="Choose 'cuda' if running on GPU",
         default="cpu",
     )
+    parser.add_argument(
+        "--output-dir",
+        "-o",
+        help="Directory to store outputs, either absolute or relative to the cwd."
+        "Will be created if it doesnt exist.",
+        default=files.script_out_dir() / "3_inference",
+        type=pathlib.Path,
+    )
 
     args = parser.parse_args()
     main(**vars(args))
