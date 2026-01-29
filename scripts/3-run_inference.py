@@ -32,6 +32,15 @@ def main(
     output_dir: pathlib.Path,
 ):
     """
+    Segment out the data given the provided models and configuration.
+
+    This will:
+     - get the requested models
+     - read in the input data
+     - crop the image to the right size using the locator model
+     - segment the objet out from the cropped image
+     - save the cropped image and corresponding segmentation mask
+
     """
     # Make out_dir if we need to
     output_dir.mkdir(parents=True, exist_ok=True)
