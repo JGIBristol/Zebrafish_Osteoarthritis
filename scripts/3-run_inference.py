@@ -57,6 +57,7 @@ def main(
 
     # We have multiple input if we have a text file
     # OR if we have a directory not containing 2d images
+    # A directory containing 2d images is a single input
     multiple_inputs = (input_data.suffix == "txt") or (
         input_data.is_dir() and not two_d_images
     )

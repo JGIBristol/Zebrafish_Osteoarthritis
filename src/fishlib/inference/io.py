@@ -36,13 +36,16 @@ def convert_input_to_array(input_path: pathlib.Path):
 
     """
     if input_path.is_dir():
-        ...
+        # If it is a directory, then it must contain 2d images
+        return _2d_images_to_array(input_path)
 
     if input_path.suffix == ".dcm":
+        # Discard the label
         image, _ = read_dicom(input_path)
         return image
 
     if input_path.suffix == ".tif":
+        # If it is a single TIF, it must be 3D
         return tifffile.imread(input_path)
 
     raise ValueError(f"Failed to convert {input_path} to array")
