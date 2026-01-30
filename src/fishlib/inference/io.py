@@ -64,6 +64,21 @@ def convert_input_to_array(input_path: pathlib.Path):
     raise ValueError(f"Failed to convert {input_path} to array")
 
 
+def _get_paths(input_data: pathlib.Path) -> list[pathlib.Path]:
+    """
+    Either return a 1-element list if input_data is a single path to our input data,
+    or a list of inputs if if it is a text file
+    """
+    if input_data.suffix == ".txt":
+        with input_data.open("r") as f:
+            return [
+                pathlib.Path(line.strip())
+                for line in f.readlines()
+                if (line.strip() and not line.startswith("#"))
+            ]
+    return [input_data]
+
+
 def inference_inputs(input_data: pathlib.Path, two_d_images: bool) -> list[np.ndarray]:
     """
     Get the inputs to run inference on as numpy arrays.

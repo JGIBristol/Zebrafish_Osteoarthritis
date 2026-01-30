@@ -157,6 +157,7 @@ A text file cannot contain mixtures of 2D TIF directories and regular files.
 It must either contain:
   - only directories of 2D TIFs (in which case --two-d-images should be set)
   - or 3D image files and/or directories of them (in which case --two-d-images is not set)
+Empty lines and lines starting with # in this file will be ignored.
 
 *If a directory of 2d images is provided, the slices must be in alphabetical
  order and the `--two-d-images` flag must be provided as well.
