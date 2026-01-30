@@ -54,6 +54,9 @@ def main(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Get the models
+    # TODO make these generic - we might want to use a non-jaw model...
+    locator_net = models.get_jaw_loc_model(locator_model, device=device)
+    segmentation_net = models.get_jaw_segment_model(segmentation_model, device=device)
 
     # We have multiple input if we have a text file
     # OR if we have a directory not containing 2d images
