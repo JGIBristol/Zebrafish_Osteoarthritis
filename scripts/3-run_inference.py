@@ -8,13 +8,14 @@ As such, you will need to provide the names of two models to do these two steps.
 
 Saves the cropped TIF and the segmentation mask to the provided location.
 
-To run it on a large dataset of jaws, run:
-```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl -d cuda \
-<YOUR RDSF MOUNT POINT>/DATABASE/uCT/Wahab_clean_dataset/TIFS/
-```
-This will use the `locator` and `my_cool_model` models respectively to crop/segment
-each of the scans in Wahab's directory on the RDSF.
+EXAMPLE
+    To run it on a large dataset of jaws, run:
+    ```
+    uv run scripts/3-run_inference.py locator my_cool_model.pkl -d cuda \
+    <YOUR RDSF MOUNT POINT>/DATABASE/uCT/Wahab_clean_dataset/TIFS/
+    ```
+    This will use the `locator` and `my_cool_model` models respectively to crop/segment
+    each of the scans in Wahab's directory on the RDSF.
 
 """
 
@@ -67,11 +68,8 @@ def main(
 
     # Read in input(s)
     for path, image in io.inference_inputs(input_data, two_d_images):
-        # Get the output paths
         name = path.name
 
-        # Find object
-        # Crop the image
         try:
             cropped = models.crop_object(
                 locator_net, scan, window_size=tuple([crop_size] * 3)
@@ -82,41 +80,11 @@ def main(
                 file=sys.stderr,
             )
             continue
-        # Save images
 
-    for img_path in tqdm(sorted(list(input_dir.glob("*.tif")))):
-        name = img_path.name
-        if (img_out_dir / name).exists() and (mask_out_dir / name).exists():
-            print(f"Skipping {name}")
-            continue
-
-        try:
-            scan = tifffile.imread(img_path)
-        except ValueError as e:
-            print(
-                f"Error reading {name}; is the tiff file incomplete?\n{str(e)}",
-                file=sys.stderr,
-            )
-            continue
-
-        # Crop the image
-        try:
-            cropped = models.crop_object(
-                loc_model, scan, window_size=tuple([crop_size] * 3)
-            )
-        except CropOutOfBoundsError as e:
-            print(
-                f"Error cropping {name}; likely an issue with the jaw localising model\n{str(e)}",
-                file=sys.stderr,
-            )
-            continue
-
-        # Run inference
         prediction = models.segment_jaw(cropped, seg_model)
 
-        # Save
-        tifffile.imwrite(img_out_dir / name, cropped)
-        tifffile.imwrite(mask_out_dir / name, prediction)
+        tifffile.imwrite((img_out_dir / name).with_suffix(".tif"), cropped)
+        tifffile.imwrite((mask_out_dir / name).with_suffix(".tif"), prediction)
 
 
 if __name__ == "__main__":
