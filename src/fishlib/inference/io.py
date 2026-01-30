@@ -3,6 +3,7 @@ Input/output helper functions.
 """
 
 import pathlib
+from typing import Generator
 
 import tifffile
 import numpy as np
@@ -14,7 +15,7 @@ def _2d_images_to_array(input_dir: pathlib.Path):
     """
     Convert a directory of TIF images to an array
     """
-    imgs = [tifffile.imread(path) for path in input_dir.glob("*.tif")]
+    imgs = [tifffile.imread(path) for path in sorted(input_dir.glob("*.tif"))]
 
     if not imgs:
         raise FileNotFoundError(f"No tifs found in {input_dir}")
@@ -79,7 +80,9 @@ def _get_paths(input_data: pathlib.Path) -> list[pathlib.Path]:
     return [input_data]
 
 
-def inference_inputs(input_data: pathlib.Path, two_d_images: bool) -> list[np.ndarray]:
+def inference_inputs(
+    input_data: pathlib.Path, two_d_images: bool
+) -> Generator[np.ndarray, None, None]:
     """
     Get the inputs to run inference on as numpy arrays.
 
@@ -91,12 +94,42 @@ def inference_inputs(input_data: pathlib.Path, two_d_images: bool) -> list[np.nd
             i) A directory containing regular files (3D TIF or DICOM)
             i) A text file containing paths to regular files
 
-    If the input is a single image, will return a 1-item list.
+    Yields image arrays one at a time.
 
     :param input_data: the input data path (either directory or regular file)
     :param two_d_images: whether the input(s) are directories containing 2D images.
 
+    :raises FileNotFoundError: the input file doesn't exist
     :raises FileNotFoundError: if we try to stack 2D images but the directory doesn't contain any
+    :raises ValueError: if we are passed a regular file but --two-d-images is set
     :raises ValueError: if we are passed directory containing no 3D TIFs or DICOMs
     """
+    if not input_data.exists():
+        raise FileNotFoundError(str(input_data))
 
+    for path in _get_paths(input_data):
+        # Case 1 - regular file
+        if path.is_file():
+            if two_d_images:
+                raise ValueError(
+                    f"{path} is not a directory - two-d-images flag supplied with a regular 3D file."
+                    "This might be because you tried to supply a text file with a mixture of directories of 2D"
+                    "TIFs and 3D images."
+                )
+            yield convert_input_to_array(path)
+
+        # Case 2 - dir of 2D images
+        elif two_d_images:
+            yield convert_input_to_array(path)
+
+        # Case 3 - dir of regular files
+        elif path.is_dir():
+            img_paths = sorted(list(path.glob("*.dcm")) + list(path.glob("*.tif")))
+            if not img_paths:
+                raise FileNotFoundError(f"No .dcm or .tif files found in {path}")
+
+            for image_path in img_paths:
+                yield convert_input_to_array(image_path)
+
+        else:
+            raise FileNotFoundError(str(path))

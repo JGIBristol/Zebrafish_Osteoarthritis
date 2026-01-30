@@ -170,7 +170,7 @@ Empty lines and lines starting with # in this file will be ignored.
     parser.add_argument(
         "--two-d-images",
         action="store_true",
-        help="Supply this flag if `input_data` points to a directory holding",
+        help="Supply this flag if `input_data` points to a directory holding 2D TIF images to be stacked",
     )
     parser.add_argument(
         "--crop-size",
