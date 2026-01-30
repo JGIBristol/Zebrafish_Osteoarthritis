@@ -50,13 +50,9 @@ def main(
      - save the cropped image and corresponding segmentation mask
 
     """
-    # Make out_dir if we need to
+    # Get the directories where the outputs will be stored, creating them if
+    # necessary
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Get the models
-    # TODO make these generic - we might want to use a non-jaw model...
-    locator_net = models.get_jaw_loc_model(locator_model, device=device)
-    segmentation_net = models.get_jaw_segment_model(segmentation_model, device=device)
 
     img_out_dir = output_dir / "imgs"
     mask_out_dir = output_dir / "masks"
@@ -64,10 +60,28 @@ def main(
     img_out_dir.mkdir(exist_ok=True)
     mask_out_dir.mkdir(exist_ok=True)
 
+    # Get the models
+    # TODO make these generic - we might want to use a non-jaw model...
+    locator_net = models.get_jaw_loc_model(locator_model, device=device)
+    segmentation_net = models.get_jaw_segment_model(segmentation_model, device=device)
+
     # Read in input(s)
-    for image in io.inference_inputs(input_data, two_d_images):
+    for path, image in io.inference_inputs(input_data, two_d_images):
+        # Get the output paths
+        name = path.name
+
         # Find object
-        # Crop it out
+        # Crop the image
+        try:
+            cropped = models.crop_object(
+                locator_net, scan, window_size=tuple([crop_size] * 3)
+            )
+        except CropOutOfBoundsError as e:
+            print(
+                f"Error cropping {name}; likely an issue with the localising model\n{str(e)}",
+                file=sys.stderr,
+            )
+            continue
         # Save images
 
     for img_path in tqdm(sorted(list(input_dir.glob("*.tif")))):
