@@ -82,9 +82,10 @@ def _get_paths(input_data: pathlib.Path) -> list[pathlib.Path]:
 
 def inference_inputs(
     input_data: pathlib.Path, two_d_images: bool
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[tuple[pathlib.Path, np.ndarray], None, None]:
     """
-    Get the inputs to run inference on as numpy arrays.
+    Get the inputs to run inference on as numpy arrays - both the path and the
+    image as a numpy array.
 
     The inputs can be:
         1) A single image, specified as:
@@ -108,6 +109,9 @@ def inference_inputs(
         raise FileNotFoundError(str(input_data))
 
     for path in _get_paths(input_data):
+        if not path.exists():
+            raise FileNotFoundError(str(path))
+
         # Case 1 - regular file
         if path.is_file():
             if two_d_images:
@@ -116,20 +120,17 @@ def inference_inputs(
                     "This might be because you tried to supply a text file with a mixture of directories of 2D"
                     "TIFs and 3D images."
                 )
-            yield convert_input_to_array(path)
+            yield path, convert_input_to_array(path)
 
         # Case 2 - dir of 2D images
         elif two_d_images:
-            yield convert_input_to_array(path)
+            yield path, convert_input_to_array(path)
 
         # Case 3 - dir of regular files
-        elif path.is_dir():
+        else:
             img_paths = sorted(list(path.glob("*.dcm")) + list(path.glob("*.tif")))
             if not img_paths:
                 raise FileNotFoundError(f"No .dcm or .tif files found in {path}")
 
             for image_path in img_paths:
-                yield convert_input_to_array(image_path)
-
-        else:
-            raise FileNotFoundError(str(path))
+                yield image_path, convert_input_to_array(image_path)
