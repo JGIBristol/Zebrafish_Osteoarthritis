@@ -16,6 +16,9 @@ def _2d_images_to_array(input_dir: pathlib.Path):
     """
     imgs = [tifffile.imread(path) for path in input_dir.glob("*.tif")]
 
+    if not imgs:
+        raise FileNotFoundError(f"No tifs found in {input_dir}")
+
     retval = np.stack(imgs, axis=0)
     assert retval.ndim == 3, (
         f"Stacked image in {input_dir} have shape {retval.shape}."
@@ -59,3 +62,26 @@ def convert_input_to_array(input_path: pathlib.Path):
         return image
 
     raise ValueError(f"Failed to convert {input_path} to array")
+
+
+def inference_inputs(input_data: pathlib.Path, two_d_images: bool) -> list[np.ndarray]:
+    """
+    Get the inputs to run inference on as numpy arrays.
+
+    The inputs can be:
+        1) A single image, specified as:
+            i) The path to a regular file (3D TIF or DICOM)
+            ii) The path to a directory containing 2D TIFs
+        2) Multiple images, specified as:
+            i) A directory containing regular files (3D TIF or DICOM)
+            i) A text file containing paths to regular files
+
+    If the input is a single image, will return a 1-item list.
+
+    :param input_data: the input data path (either directory or regular file)
+    :param two_d_images: whether the input(s) are directories containing 2D images.
+
+    :raises FileNotFoundError: if we try to stack 2D images but the directory doesn't contain any
+    :raises ValueError: if we are passed directory containing no 3D TIFs or DICOMs
+    """
+
