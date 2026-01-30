@@ -151,8 +151,12 @@ if __name__ == "__main__":
   - the path to a directory holding 2d tif images*
 
 The input data can also be several images:
-  - a text file (file extension .txt) where each line is any of the above
+  - a text file (file extension .txt) where each line is any of the above (relative to the cwd)
   - the path to a directory holding 3d Images (TIF or DICOM)
+A text file cannot contain mixtures of 2D TIF directories and regular files.
+It must either contain:
+  - only directories of 2D TIFs (in which case --two-d-images should be set)
+  - or 3D image files and/or directories of them (in which case --two-d-images is not set)
 
 *If a directory of 2d images is provided, the slices must be in alphabetical
  order and the `--two-d-images` flag must be provided as well.
