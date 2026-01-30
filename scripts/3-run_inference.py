@@ -151,7 +151,7 @@ if __name__ == "__main__":
   - the path to a directory holding 2d tif images*
 
 The input data can also be several images:
-  - a text file where each line is any of the above
+  - a text file (file extension .txt) where each line is any of the above
   - the path to a directory holding 3d Images (TIF or DICOM)
 
 *If a directory of 2d images is provided, the slices must be in alphabetical
