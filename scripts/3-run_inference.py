@@ -69,6 +69,12 @@ def main(
     # Read in input(s)
     for path, image in io.inference_inputs(input_data, two_d_images):
         name = path.name
+        img_path = (img_out_dir / name).with_suffix(".tif")
+        mask_path = (mask_out_dir / name).with_suffix(".tif")
+        if img_path.exists():
+            raise FileExistsError(f"{img_path} exists; move or delete it")
+        if mask_path.exists():
+            raise FileExistsError(f"{mask_path} exists; move or delete it")
 
         try:
             cropped = models.crop_object(
@@ -81,10 +87,10 @@ def main(
             )
             continue
 
-        prediction = models.segment_jaw(cropped, seg_model)
+        prediction = models.segment_object(segmentation_net, cropped)
 
-        tifffile.imwrite((img_out_dir / name).with_suffix(".tif"), cropped)
-        tifffile.imwrite((mask_out_dir / name).with_suffix(".tif"), prediction)
+        tifffile.imwrite(img_path, cropped)
+        tifffile.imwrite(mask_path, prediction)
 
 
 if __name__ == "__main__":
