@@ -58,40 +58,17 @@ def main(
     locator_net = models.get_jaw_loc_model(locator_model, device=device)
     segmentation_net = models.get_jaw_segment_model(segmentation_model, device=device)
 
-    # We have multiple input if we have a text file
-    # OR if we have a directory not containing 2d images
-    # A directory containing 2d images is a single input
-    multiple_inputs = (input_data.suffix == "txt") or (
-        input_data.is_dir() and not two_d_images
-    )
+    img_out_dir = output_dir / "imgs"
+    mask_out_dir = output_dir / "masks"
+
+    img_out_dir.mkdir(exist_ok=True)
+    mask_out_dir.mkdir(exist_ok=True)
 
     # Read in input(s)
     for image in io.inference_inputs(input_data, two_d_images):
         # Find object
         # Crop it out
         # Save images
-        ...
-
-    img_out_dir = out_dir / "imgs"
-    mask_out_dir = out_dir / "masks"
-
-    img_out_dir.mkdir(parents=True, exist_ok=True)
-    mask_out_dir.mkdir(parents=True, exist_ok=True)
-
-    # Get the input dir
-    # TODO this should be provided on the CLI
-    config = util.userconf()
-    input_dir = (
-        pathlib.Path(config["rdsf_dir"])
-        / "DATABASE"
-        / "uCT"
-        / "Wahab_clean_dataset"
-        / "TIFS"
-    )
-
-    # Get the models
-    loc_model = models.get_jaw_loc_model(locator_model_name, device=device)
-    seg_model = models.get_jaw_segment_model(device=device)
 
     for img_path in tqdm(sorted(list(input_dir.glob("*.tif")))):
         name = img_path.name
@@ -189,7 +166,8 @@ Empty lines and lines starting with # in this file will be ignored.
         "--output-dir",
         "-o",
         help="Directory to store outputs, either absolute or relative to the cwd."
-        "Will be created if it doesnt exist.",
+        "Will be created if it doesnt exist."
+        "Images and masks will be saved to `imgs/` and `masks/` subdirectories of this dir.",
         default=files.script_out_dir() / "3_inference",
         type=pathlib.Path,
     )
