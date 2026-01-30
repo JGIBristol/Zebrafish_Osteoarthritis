@@ -15,7 +15,14 @@ def _2d_images_to_array(input_dir: pathlib.Path):
     Convert a directory of TIF images to an array
     """
     imgs = [tifffile.imread(path) for path in input_dir.glob("*.tif")]
-    return np.stack(imgs, axis=0)
+
+    retval = np.stack(imgs, axis=0)
+    assert retval.ndim == 3, (
+        f"Stacked image has shape {retval.shape}."
+        "Did you accidentally pass a directory of 3D TIFs with the --two-d-images flag?"
+    )
+
+    return retval
 
 
 def convert_input_to_array(input_path: pathlib.Path):
