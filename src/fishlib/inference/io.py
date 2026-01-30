@@ -14,6 +14,8 @@ def _2d_images_to_array(input_dir: pathlib.Path):
     """
     Convert a directory of TIF images to an array
     """
+    imgs = [tifffile.imread(path) for path in input_dir.glob("*.tif")]
+    return np.stack(imgs, axis=0)
 
 
 def convert_input_to_array(input_path: pathlib.Path):
