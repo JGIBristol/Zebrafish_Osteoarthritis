@@ -26,7 +26,7 @@ import tifffile
 from tqdm import tqdm
 
 from fishlib.util import files, util
-from fishlib.inference import models
+from fishlib.inference import models, io
 from fishlib.images.transform import CropOutOfBoundsError
 
 
@@ -63,14 +63,11 @@ def main(
     )
 
     # Read in input(s)
-    #   - turn 2d into array
-    #   - turn 3d into array
-    #   - turn dicom into array
-    # or a list of the above
-    # Iterate over objects; make 1-item list if we need to
-    # Find object
-    # Crop it out
-    # Save images
+    for image in io.inference_inputs(input_data, two_d_images):
+        # Find object
+        # Crop it out
+        # Save images
+        ...
 
     img_out_dir = out_dir / "imgs"
     mask_out_dir = out_dir / "masks"
