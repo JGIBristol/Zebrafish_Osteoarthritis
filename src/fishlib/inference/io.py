@@ -18,7 +18,7 @@ def _2d_images_to_array(input_dir: pathlib.Path):
 
     retval = np.stack(imgs, axis=0)
     assert retval.ndim == 3, (
-        f"Stacked image has shape {retval.shape}."
+        f"Stacked image in {input_dir} have shape {retval.shape}."
         "Did you accidentally pass a directory of 3D TIFs with the --two-d-images flag?"
     )
 
@@ -49,10 +49,13 @@ def convert_input_to_array(input_path: pathlib.Path):
     if input_path.suffix == ".dcm":
         # Discard the label
         image, _ = read_dicom(input_path)
+        assert image.ndim == 3, f"{input_path} is not a 3D DICOM but has {image.shape=}"
         return image
 
     if input_path.suffix == ".tif":
         # If it is a single TIF, it must be 3D
-        return tifffile.imread(input_path)
+        image = tifffile.imread(input_path)
+        assert image.ndim == 3, f"{input_path} is not a 3D TIF but has {image.shape=}"
+        return image
 
     raise ValueError(f"Failed to convert {input_path} to array")
