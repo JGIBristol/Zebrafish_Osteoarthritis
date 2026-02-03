@@ -1,10 +1,3 @@
 Zebrafish Osteoarthritis
 ====
-
-## Motivation
-
-## What this project does
-
-## Getting started
-
-## What to do next
+See the [main README](./README.md).
