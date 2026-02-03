@@ -11,10 +11,10 @@ Saves the cropped TIF and the segmentation mask to the provided location.
 EXAMPLE
     To run it on a large dataset of jaws, run:
     ```
-    uv run scripts/3-run_inference.py locator my_cool_model.pkl -d cuda \
+    uv run scripts/3-run_inference.py locator example_segmenter.pkl -d cuda \
     <YOUR RDSF MOUNT POINT>/DATABASE/uCT/Wahab_clean_dataset/TIFS/
     ```
-    This will use the `locator` and `my_cool_model` models respectively to crop/segment
+    This will use the `example_locator` and `example_segmenter` models respectively to crop/segment
     each of the scans in Wahab's directory on the RDSF.
 
 """

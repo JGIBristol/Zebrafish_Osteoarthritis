@@ -18,7 +18,7 @@ More explanations:
 <summary>Command Line Arguments</summary>
 This script accepts a number of command line arguments:
 
- 1. **The locator model**: as a string, just the name of the model in the same way it was provided on the CLI when running `1-train_jaw_locator.py`.
+ 1. **The locator model**: as a string, just the name of the model in the same way it was provided on the CLI when running `1-train_jaw_locator.py`. The `example_locator` model is provided with this repo.
  2. **The segmentation model**: as a string, with .pkl at the end, in the same way it was provided in `userconf.yml` when
  running `2-train_jaw_segmenter.py`.
  3. **The input data** there are lots of ways to specify this, see below...
@@ -95,27 +95,27 @@ There are also a series of optional arguments that you *may* want to set, but do
 > Change it to your actual mount point to run these.
 
 > [!NOTE]
-> The `locator` and `my_cool_model` models weights are provided as part
+> The `example_locator` and `example_segmenter` models weights are provided as part
 > of this git repo.
 
 #### Run on a single 3D TIF image
 ```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/TIFS/ak_1.tif --output-dir 3d_tif_example
+uv run scripts/3-run_inference.py example_locator example_segmenter.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/TIFS/ak_1.tif --output-dir 3d_tif_example
 ```
 
 #### Run on a stack of 2D TIF images
 ```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/low_res_clean_v3/040/reconstructed_tifs/ --two-d-images --output-dir 2d_stack_example
+uv run scripts/3-run_inference.py example_locator example_segmenter.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/low_res_clean_v3/040/reconstructed_tifs/ --two-d-images --output-dir 2d_stack_example
 ```
 
 #### Run on several 3D TIF images
 ```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/TIFS/ --output-dir several_tifs_example
+uv run scripts/3-run_inference.py example_locator example_segmenter.pkl ~/MY_RDSF_MOUNT/DATABASE/uCT/Wahab_clean_dataset/TIFS/ --output-dir several_tifs_example
 ```
 
 #### Run on several 3D TIF images, using a text file to specify paths
 ```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl my_inputs.txt --output-dir 3d_tifs_from_txt_example
+uv run scripts/3-run_inference.py example_locator example_segmenter.pkl my_inputs.txt --output-dir 3d_tifs_from_txt_example
 ```
 <details>
 <summary>my_inputs.txt</summary>
@@ -129,7 +129,7 @@ uv run scripts/3-run_inference.py locator my_cool_model.pkl my_inputs.txt --outp
 
 #### Run on several 2D image stacks, using a text file to specify paths
 ```
-uv run scripts/3-run_inference.py locator my_cool_model.pkl my_inputs.txt --output-dir 2d_tifs_from_txt_example --two-d-images
+uv run scripts/3-run_inference.py example_locator example_segmenter.pkl my_inputs.txt --output-dir 2d_tifs_from_txt_example --two-d-images
 ```
 <details>
 <summary>my_inputs.txt</summary>

@@ -323,7 +323,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model-name",
         type=str,
-        default="locator",
+        default="example_locator",
     )
     parser.add_argument(
         "--debug-plots",

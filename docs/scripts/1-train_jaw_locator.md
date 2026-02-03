@@ -28,7 +28,7 @@ See the section below if you're wondering why we have to do this.
 #### 3. Check the model has been saved
 The model should have been saved to `script_output/jaw_location/<model_name>/<model_name>.pth`.
 
-The name can be chosen with the above command line argument; it defaults to `locator`.
+The name can be chosen with the above command line argument; it defaults to `example_locator`.
 
 ## More information
 <details>
