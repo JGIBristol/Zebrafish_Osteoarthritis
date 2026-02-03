@@ -203,9 +203,20 @@ def script_out_dir() -> pathlib.Path:
     return retval
 
 
+def jaw_locator_model_path(model_name: str) -> pathlib.Path:
+    """
+    Get the path to the jaw location model, as created by scripts/1-train_jaw_locator.py.
+
+    :param model_name: the name of the jaw locating model (provided on the CLI when
+                       training).
+    :returns: path to the model.
+    """
+    return script_out_dir() / "jaw_location" / model_name / f"{model_name}.pth"
+
+
 def model_path(config: dict[str, Any]) -> pathlib.Path:
     """
-    Get the path to the cached model, as created by scripts/train_model.py
+    Get the path to the jaw segmentation model, as created by scripts/2-train_jaw_segmenter.py.
 
     This is intended to be used with the model.ModelState class, so that we
     can keep the model state (weights, biases), the optimiser state and the
