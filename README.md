@@ -56,6 +56,33 @@ This will mount the RDSF somewhere like `/run/user/123456/gvfs/smb-share:server=
 Have a look in `/run/user/` to find the exact path. You can then create a convenient symlink to this directory using `ln`.
 </details>
 
+<details>
+<summary>
+If you can't access the RDSF
+</summary>
+
+If you can't access the RDSF (e.g. you are an external collaborator, reviewer, etc.) then you can still run the code here, but some bits might be more difficult.
+
+### Inference
+Running inference on a complete zebrafish scan doesn't require the RDSF.
+Pre-trained models are provided with this repo, so you can run inference as normal
+with the [inference script](./scripts/3-run_inference.py).
+
+### Model training
+Training the models is a little more complicated, since some things are hard-coded relative
+to the root of the RDSF.
+
+If you don't have RDSF access but **do** have access to a folder of training data (e.g.
+one that was deposited as the data for a publication), then you can use this:
+1. unzip this directory of training data somewhere
+2. change `rdsf_dir` in `userconf.yml` to point to where you unzipped this directory.
+
+This should work, but I haven't tested it.
+
+If you don't have the training data and you want to train a model, you'll have to get access to the training data first.
+
+</details>
+
 ### Hardware
 You will likely want to the a GPU to train the models.
 As well as the usual BriCS/ACRC computing facilities, the group has a remote machine with an A6000 GPU on it.
