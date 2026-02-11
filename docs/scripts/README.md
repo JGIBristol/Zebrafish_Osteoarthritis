@@ -7,7 +7,7 @@ The scripts here are the user interface for the code.
 > to step 3.
 
 In order:  
-1. Create DICOMs
+0. Create DICOMs
 
 Cache the jaw model training data locally so it is faster to read in future.
 This is useful because it takes a long time to read data from the RDSF - if
@@ -15,15 +15,15 @@ we're training multiple models (e.g. during exploratory work, tuning a model,
 or re-training a model on a new bone) we can save time by caching the CT scans
 with this script.
 
-2. Train a jaw location model
+1. Train a jaw location model
 
 Train a model to locate the jaw in a CT scan. We will use this model to crop the jaw out from the scan.
 
-3. Train a jaw segmentation model
+2. Train a jaw segmentation model
 
 Train a model to segment the jaw from a CT scan.
 
-4. Run the jaw segmentation models on some data.
+3. Run the jaw segmentation models on some data.
 
 This script will read a scan, crop the jaw region, perform inference and
 save the outputs as 3D TIF images.
