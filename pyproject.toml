@@ -7,7 +7,7 @@ name = "fishlib"
 version = "0.0.1"
 description = "Zebrafish Osteoarthritis ML Studies"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.12.*"
 license = {text = "MIT"}
 authors = [
     {name = "Richard Lane", email = "richard.lane@bristol.ac.uk"},
