@@ -1,0 +1,23 @@
+"""
+Unit tests for util module
+
+"""
+
+import pytest
+
+from fishlib.util import util
+
+
+def test_call_once() -> None:
+    """
+    Check that a function can only be called once
+
+    """
+
+    @util.call_once
+    def test_func() -> None:
+        """Test function"""
+
+    test_func()
+    with pytest.raises(RuntimeError):
+        test_func()
