@@ -88,7 +88,7 @@ We can therefore downsample its training data, and still have a model that is ca
         The downsampled image is approximately a sixteenth the size of the original image, but still contains
         enough context for the model to locate the jaw.
         The location of the jaw centroid is marked in red.
-        }
+    }
 \end{figure}
 Once the jaw is located in the downsampled scan, it is a simple matter to convert the jaw location co-ordinate in the downsampled scan
 to the corresponding co-ordinate in the full-resolution scan. E.g. if we downsample the image by 4 times (in each direction), we just
@@ -141,11 +141,45 @@ output--- it doesn't matter if we're a few pixels off, as long as we still get t
 \end{figure}
 
 \section{Jaw Segmentation}
+The segmentation model is fed a cropped scan, and outputs a matching segmentation mask.
+As part of the inference pipeline, we threshold the model's output and clean it up so that the segmentation
+mask only contains one object--- we don't necessarily have to do this, but it does give more sensible segmentation masks.
 \label{Jaw Segmentation}
 \subsection{Model Architecture}
-What the U-Net looks like
+Here's a simplified view of the model architecture:
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/simple\_net\_diagram.png}
+    \caption{
+        A simplified view of what happens in a U-Net model.
+        Patches are extracted from the input image (see~\ref{Patch-based Training}).
+        The patch is fed through successive layers,
+        each of which applies convolution operation(s).
+        The convolution operations are basically sliding-window multiplications with a small image (the ``filter'').
+        The network learns which convolution filters will give the correct output.
+        This results in, roughly, the model learning to identify features at different length
+        scales and how to translate them into a segmentation mask with the right shape at the right location.
+    }
+\end{figure}
+A more detailed view, showing the actual operations:
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/net_diagram.png}
+    \caption{
+        A more detailed view of what happens to the patch.
+        The patch starts as a greyscale image (1 channel, 160 pixels long/wide/deep).
+        Each layer starts with a convolution, to increase the number of channels (black arrow) and
+        a max-pooling (green) which reduces the spatial dimension.
+        The skip connections (dotted arrow) are modulated by an attention mechanism ($\sigma$),
+        which uses the feature map from a deeper layer as the gating signal.
+        Intuitively this means that the model uses the deeper (coarser, more semantically-aware) information
+        to choose which information (finer, higher-resolution) is passed to the decoder in the skip connection.
+    }
+\end{figure}
+
 \subsection{Patch-based Training}
-Why split into patches: generalises better, might mean it works on the whole scan
+\label{Patch-based Training}
+
 \subsection{Model Output}
 Probabilities, which we threshold + clean up
 \begin{figure}
