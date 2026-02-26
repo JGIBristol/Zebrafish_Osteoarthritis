@@ -216,6 +216,7 @@ Here are some slices through a jaw:
     \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant.png}
     \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant3.png}
     \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant2.png}
+    \label{jaws}
     \caption{
         Some examples of projections of the jaws.
         The colourbar shows greyscale value (density).
@@ -233,28 +234,80 @@ Here are some slices through a jaw:
 \end{figure}
 
 \section{Future Work}
-\subsection{Existing Model Improvements}
-\subsubsection{Model Ensemble}
-\subsubsection{Ablation study}
+There's a decent amount of stuff you could do with these models.
+The obvious thing is to use them to segment out lots of jaws then do some useful analysis with the segmentation masks.
 
-\begin{figure}
-    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_2.png}
-    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_3.png}
-    \caption{
-        Ablation study - turning layers 2 or 3 ``off'' seems to segment out all the bones in the fish head. interesting.
-        This doesn't happen with the other layers.
-    }
-\end{figure}
+There are also a few obvious data science extensions, which I've briefly outlined below.
+There's more detail on these, intended for a new person starting work on this project,
+at \url{http://www.github.com/JGIBristol/Zebrafish_Osteoarthritis/issues}.
+Others may be more immediately useful or interesting, depending on what's going on in the research group.
+
+\subsection{Shape Analysis}
+\subsubsection{Fine-tuning on Other Bones}
+We want to fine-tune the model(s) to segment out other bones, e.g. the spine.
+I've written a rough example showing this on another dataset; all we need to do is investigate
+how well fine-tuning works on the new spine dataset.
+
+\subsubsection{Auto Mesh}
+At the moment we mesh the segmentations manually.
+This is quite time-consuming; it should be possible to train a model to do this for us.
+Cubic meshing is quite easy, once we have the segmentation mask.
+A more complete workflow might take us straight from CT scan to a tetrahedral mesh.
+
+\subsubsection{Shapeworks}
+Software exists for automatic shape analysis.
+We can do semilandmarking, normalisation and PCA to find out where the major shape differences
+are located on the jaws.
+This is useful for answering questions about how and where age/mutations/sex affect the bones.
+
+\subsubsection{Multimodal Model for Multiple Bones}
+The end goal would be a model that looks at the entire CT scan and segments out all the bones
+with different labels. Perhaps there have been more recent advances in foundation models for
+CT images which might help here.
 
 \subsection{Density Analysis}
 \subsubsection{Greyscale analysis}
-\subsubsection{feature selection}
-\subsubsection{find muscle attachments}
+We can see the muscle attachments in the images (Fig~\ref{jaws}).
+They show up as regions of denser bone; we might want to investigate how the density at these
+attachment sites changes, in absolute terms and relative to the rest of the bone, with age/mutation.
 
-\subsection{Shape Analysis}
-\subsubsection{fine-tuning on other bones}
-\subsubsection{Auto mesh}
-\subsubsection{Shapeworks}
-\subsubsection{multimodal model for multiple bones}
+\subsubsection{Radiomic Feature Selection}
+Radiomic features are things like greyscale patchiness/size/shape that are useful for radiologists.
+We can extract radiomic features from our jaw dataset and see which ones are most useful for describing
+the variation between aged/young/mutant fish.
+This is useful since we can make hypotheses about the effect of density, and its distribution, and how
+that affects fracture risk and bone optimality.
+
+\subsubsection{Find Muscle Attachments}
+You can see the muscle attachments in Fig~\ref{jaws}. To do the bone density analyis, we might
+want to precisely locate them.
+We could either do this by trying to come up with some simple greyscale-based rules,
+or with another ML model.
+
+\subsection{Existing Model Improvements}
+\subsubsection{Model Ensemble}
+At the moment, we just use one model for each task. There is some randomness involved in the training process, though
+and we can exploit that by using an ensemble of models. This should, in some sense, average out the bias from our single model
+and give us better results (e.g. if the segmentation model systematically under/overpredicts, an ensemble might help with this).
+We can get this ``for free'', since we don't need to do anything special --- just train a load more models, then come up with
+some way of combining their predictions (e.g. averaging, or some voting system).
+
+\subsubsection{Ablation study}
+As part of the fine-tuning study, I tried turning off the segmentation model's attention mechanism in selected layers.
+The attention mechanisms suppress information passing though the skip connections --- when we turn these off, the model loses the
+ability to ``focus on the important bits''.
+Interestingly, it looked like there was very little effect from turning the attention in layers 1, 4 and 5 off.
+However, turning the attention mechanism off in layers 2 or 3 had a huge effect:
+\begin{figure}[H]
+    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_2.png}
+    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_3.png}
+    \caption{
+        Ablation study - turning layers 2 or 3 ``off'' seems to segment out all the bones in the fish head.
+        This doesn't happen with the other layers, which is suggestive that the attention isn't doing much here.
+        It is also suggestive that something is going on where the model is separately learning the shape and density
+        of the target bone --- could we use this to understand how the model works, or to inform our fine-tuning studies?
+    }
+\end{figure}
+NB I think one of STFC's priorities at the moment is on ``explainable AI'', so this might be a good thing to mention in grant applications.
 
 \end{document}
