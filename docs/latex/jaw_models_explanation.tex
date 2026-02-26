@@ -147,7 +147,7 @@ mask only contains one object--- we don't necessarily have to do this, but it do
 \label{Jaw Segmentation}
 \subsection{Model Architecture}
 Here's a simplified view of the model architecture:
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{assets/simple\_net\_diagram.png}
     \caption{
@@ -162,7 +162,7 @@ Here's a simplified view of the model architecture:
     }
 \end{figure}
 A more detailed view, showing the actual operations:
-\begin{figure}
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.8\textwidth]{assets/net_diagram.png}
     \caption{
@@ -179,22 +179,64 @@ A more detailed view, showing the actual operations:
 
 \subsection{Patch-based Training}
 \label{Patch-based Training}
+A U-Net model has a fixed-sized input.
+This is fine, as long as we know that its input will always be the same size.
+However, in our case we may want to fine-tune the model to segment other bones, which might have a different input size
+(e.g. the spine, which will probably be a very long and thin image).
+To overcome this, we can split the input image into patches and then feed them into the model.
+We lose some local context here, but it is ok as long as the patches are large enough to contain all the context needed for segmentation.
+It can also overcome GPU memory limitations and force the model to focus more on local details, which might be desirable
+(e.g. we might want to force the model to segment based on the surrounding tissue, not by looking for an object in the fish head).
+
+The patches we used here are almost as big as the entire input image, so there wasn't a big memory saving.
+However, the patch-based pipeline means that, in principle, might be able to feed the model an entire CT scan which
+we could then run inference on. The model would ideally just segment the jawbone out from the scan, and leave everything else.
+This doesn't work very well in practice though (the model hasn't seen much non-jaw fish, so it randomly segments out other bits).
+
+We get the final segmentation mask by stitching together the model's output patches.
+In the regions where the patches overlap, we just average the predictions from each patch (they tend to agree pretty well).
 
 \subsection{Model Output}
-Probabilities, which we threshold + clean up
-\begin{figure}
+The model outputs probabilities (sort of --- I think there's some technical reason why they aren't really probabilities, but it outputs a number between 0 and 1 for each voxel),
+which we threshold to get the final prediction mask. We then clean it up - we know the jaw has to be a single, contiguous bone, so
+we remove any voxels that aren't attached to the largest connected component in the segmentation mask.
+
+Here are some slices through a jaw:
+\begin{figure}[H]
     \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/test\_pred.png}
     \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/test\_truth.png}
     \caption{
         Jaw segmentation prediction vs truth; slices through the thing
     }
 \end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/wt.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant3.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant2.png}
+    \caption{
+        Some examples of projections of the jaws.
+        The colourbar shows greyscale value (density).
+        These were extracted from Wahab's TIFS dataset on the RDSF, by putting the TIFS through
+        our location/segmentation/thresholding pipeline.
+        I think some of these are mutants.
+    }
+\end{figure}
+
 \begin{figure}
     \includegraphics[width=\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/loss.png}
     \caption{
-        Jaw segmentation loss
+        Jaw segmentation loss. Not sure what the big spikes in the validation loss are.
     }
 \end{figure}
+
+\section{Future Work}
+\subsection{Existing Model Improvements}
+\subsubsection{Model Ensemble}
+\subsubsection{Ablation study}
+
 \begin{figure}
     \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_2.png}
     \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_3.png}
@@ -204,14 +246,15 @@ Probabilities, which we threshold + clean up
     }
 \end{figure}
 
-\section{Future Work}
-\subsection{Existing Model Improvements}
-Model Ensemble, Ablation study
-
 \subsection{Density Analysis}
-Greyscale analysis, feature selection, find muscle attachments
+\subsubsection{Greyscale analysis}
+\subsubsection{feature selection}
+\subsubsection{find muscle attachments}
 
 \subsection{Shape Analysis}
-fine-tuning on other bones, Auto mesh, Shapeworks, multimodal model for multiple bones,
+\subsubsection{fine-tuning on other bones}
+\subsubsection{Auto mesh}
+\subsubsection{Shapeworks}
+\subsubsection{multimodal model for multiple bones}
 
 \end{document}
