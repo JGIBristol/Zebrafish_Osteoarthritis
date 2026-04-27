@@ -3,6 +3,8 @@
 # Useful in case we want to investigate the effect of the randomness in the training 
 # process
 
+set -eu
+
 # Backup the original config file
 cp userconf.yml userconf.yml.backup
 
@@ -10,7 +12,7 @@ cp userconf.yml userconf.yml.backup
 mkdir -p logs/
 
 for i in {0..19}; do
-    echo "Training model attempt_${i}.pkl (iteration $((i+1)) of 19)"
+    echo "Training model attempt_${i}.pkl (iteration $((i+1)) of 20)"
     
     # Update the model_path in the YAML file
     sed -i "s/^model_path: .*/model_path: \"attempt_n${i}.pkl\"/" userconf.yml
