@@ -1,0 +1,313 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{Jaw Models Explanation}
+\author{Zebrafish Osteoarthritis Project}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+One of the best ways to image bones in an animal (here, zebrafish) is with a CT scanner.
+This is non-invasive and provides us with detailed 3D images that we can do all sorts of things with.
+
+The CT scan is a greyscale (bit depth of 1) image.
+Normally, investigating the properties of a bone requires us to:
+\begin{itemize}
+    \item Load the CT scan image into some imaging program
+    \item Look through each slice of the scan, manually labelling each voxel as bone or not
+    \item Export these labels as a segmentation mask
+    \item Load the mask into some other program and perform analysis on it
+\end{itemize}
+The CT scan is a large image (it will have a dimension of around $2000\times 500\times 500$ voxels),
+so making the segmentation is time-consuming and can be error-prone (humans get tired from looking at a
+screen for hours).
+It is also not fully reproducible --- different humans will have different opinions on e.g.
+whether one voxel represents bone or not, where one bone ends and another begins, and where things like
+the edges of bones lie.
+
+To solve some of these problems, AI methods can be used to segment the bones of interest out from
+a CT scan.
+
+\section{Analysis Pipeline}
+This is what happens to a CT scan when we put it through our analysis pipeline:
+\begin{figure}[H]
+    \includegraphics[width=\textwidth]{assets/fish_procedure.png}
+    \label{analysis pipeline}
+    \caption{
+        The analysis pipeline.
+        A CT image is fed into the jaw location model, which finds the rough location of the jaw.
+        The scan is then cropped around this location, and the cropped scan fed into the segmentation model.
+        The segmentation model works by splitting the input image into patches (see Section.~\ref{Jaw Segmentation}),
+        running inference on each patch and then aggregating them together.
+        The final jaw segmentation mask is created by thresholding the model's output to get a binary image,
+        and taking the largest connected component in the binary image.
+        We can then do downstream analysis on this segmentation mask (meshing, FE analysis, ...)
+    }
+
+\end{figure}
+
+\section{Jaw Location}
+\label{Jaw Location}
+We want to feed our CT scan into some model pipeline, and have it output a segmentation mask (or mesh) of the jawbone.
+
+However, as mentioned above each image is large (around 1.6GB on disk in practice for our $2000\times 640\times 640$ images).
+Training a model on these images would probably be
+\begin{enumerate}
+    \item inefficient (most of the CT scan is not the jaw, so the model would spend most of its time learning that 99.9\% of the scan is not jaw)
+    \item slow or expensive (we would either have to pay to use a very large GPU that can hold tens to hundreds of GB training data in memory, or read the data from disk at every epoch which would be very slow)
+\end{enumerate}
+To deal with this, we trained the jaw segmentation model (Section \ref{Jaw Segmentation}) on cropped-out data -
+we manually cropped a region around the jaw in both the mask and the training image, and fed these pairs into the model.
+
+This has an unfortunate side effect --- it means that the jaw segmentation model (probably) won't work well if we feed it
+entire CT scans.
+We don't want to spend lots of time manually cropping out the jaws when we take new data from a beamline --- this would defeat
+some of the point of our time-saving segmentation pipeline.
+To get around this, we trained a model to locate the jaw automatically.
+
+\subsection{How the Jaw Location Model Works}
+\subsubsection{Downsampling Scan}
+The CT scans are too large to fit in memory (as described above),
+so we can't train the locator model on the full-sized, full-resolution scan.
+However, the location model doesn't need to see all the fine detail of the fish - it just needs to see its general structure.
+We can therefore downsample its training data, and still have a model that is capable of finding the right location in the scan.
+\begin{figure}[H]
+    \centering
+    \label{downsampling}
+    \includegraphics[width=0.48\textwidth]{../../script_output/jaw_location/example_locator/test_centroid_truth.png}
+    \includegraphics[width=0.48\textwidth]{../../script_output/jaw_location/example_locator/test_centroid_downsampled.png}
+    \caption{
+        The original (left) and downsampled (right) images.
+        The downsampled image is approximately a sixteenth the size of the original image, but still contains
+        enough context for the model to locate the jaw.
+        The location of the jaw centroid is marked in red.
+    }
+\end{figure}
+Once the jaw is located in the downsampled scan, it is a simple matter to convert the jaw location co-ordinate in the downsampled scan
+to the corresponding co-ordinate in the full-resolution scan. E.g. if we downsample the image by 4 times (in each direction), we just
+multiply the location co-ords by 4.
+
+\subsubsection {Object Location}
+The intuitive way to locate an object in an image would be to train a model to learn the $\left(x, y, z\right)$ co-ordinates of the object
+from the image.
+In practice, this doesn't work very well - it can be hard to train a model to learn the co-ordinates without overfitting
+(part of this is that the output won't have the ``inductive biases'' of a convolutional network - we lose things like translational symmetry
+when our model learns co-ords from an image).
+Instead, we actually train a U-Net (which is a segmentation model) for the jaw location.
+This works by placing a Gaussian heatmap at the centre of the jaw--- the model is tasked to segment this Gaussian out
+from the CT scan.
+As well as being easier to train, additional benefits of the heatmap are:
+\begin{itemize}
+    \item Heatmaps easily generalise to identifying multiple objects in one image
+    \item We get a free uncertainty measure of the location from the heatmap
+    \item We can derive things like bounding boxes easily from heatmaps
+    \item Heatmaps can handle overlapping objects (if we e.g. wanted to, later, identify )
+    \item We can get sub-pixel precision, if our heatmap is $<1$px in size
+\end{itemize}
+During training, the heatmap is gradually shrunk to give us better precision.
+We start with a large heatmap, since that is easy for the model to learn.
+Once it is performing well enough, we shrink it (down to some minimum size).
+
+The segmentation model (Section~\ref{Jaw Segmentation}) needs to be good to give meaningful results.
+In contrast, the location model only needs to be ``good enough'' that we can crop the full jaw from its
+output--- it doesn't matter if we're a few pixels off, as long as we still get the jaw in the cropped output.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_location/example\_locator/heatmap\_epoch\_49\_sigma\_7.200.png}
+    \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_location/example\_locator/heatmap\_epoch\_173\_sigma\_3.444.png}
+    \caption{
+        The jaw location model is a segmentation model - we learn to segment out a Gaussian heatmap placed at the jaw's centroid.
+        The heatmap gradually shrinks as the model learns.
+    }
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{../../script\_output/jaw\_location/example\_locator/losses.png}
+    \caption{
+        The loss function can look funny---
+        it decreases as we learn to find the large heatmap,
+        then there are bumps as the heatmap shrinks and the model must re-learn.
+        The learning rate in this example was a little too high, but you can sort of see the bumps
+        in the training loss as the heatmap shrinks.
+    }
+\end{figure}
+
+\section{Jaw Segmentation}
+The segmentation model is fed a cropped scan, and outputs a matching segmentation mask.
+As part of the inference pipeline, we threshold the model's output and clean it up so that the segmentation
+mask only contains one object--- we don't necessarily have to do this, but it does give more sensible segmentation masks.
+\label{Jaw Segmentation}
+\subsection{Model Architecture}
+Here's a simplified view of the model architecture:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/simple\_net\_diagram.png}
+    \caption{
+        A simplified view of what happens in a U-Net model.
+        Patches are extracted from the input image (see~\ref{Patch-based Training}).
+        The patch is fed through successive layers,
+        each of which applies convolution operation(s).
+        The convolution operations are basically sliding-window multiplications with a small image (the ``filter'').
+        The network learns which convolution filters will give the correct output.
+        This results in, roughly, the model learning to identify features at different length
+        scales and how to translate them into a segmentation mask with the right shape at the right location.
+    }
+\end{figure}
+A more detailed view, showing the actual operations:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{assets/net_diagram.png}
+    \caption{
+        A more detailed view of what happens to the patch.
+        The patch starts as a greyscale image (1 channel, 160 pixels long/wide/deep).
+        Each layer starts with a convolution, to increase the number of channels (black arrow) and
+        a max-pooling (green) which reduces the spatial dimension.
+        The skip connections (dotted arrow) are modulated by an attention mechanism ($\sigma$),
+        which uses the feature map from a deeper layer as the gating signal.
+        Intuitively this means that the model uses the deeper (coarser, more semantically-aware) information
+        to choose which information (finer, higher-resolution) is passed to the decoder in the skip connection.
+    }
+\end{figure}
+
+\subsection{Patch-based Training}
+\label{Patch-based Training}
+A U-Net model has a fixed-sized input.
+This is fine, as long as we know that its input will always be the same size.
+However, in our case we may want to fine-tune the model to segment other bones, which might have a different input size
+(e.g. the spine, which will probably be a very long and thin image).
+To overcome this, we can split the input image into patches and then feed them into the model.
+We lose some local context here, but it is ok as long as the patches are large enough to contain all the context needed for segmentation.
+It can also overcome GPU memory limitations and force the model to focus more on local details, which might be desirable
+(e.g. we might want to force the model to segment based on the surrounding tissue, not by looking for an object in the fish head).
+
+The patches we used here are almost as big as the entire input image, so there wasn't a big memory saving.
+However, the patch-based pipeline means that, in principle, might be able to feed the model an entire CT scan which
+we could then run inference on. The model would ideally just segment the jawbone out from the scan, and leave everything else.
+This doesn't work very well in practice though (the model hasn't seen much non-jaw fish, so it randomly segments out other bits).
+
+We get the final segmentation mask by stitching together the model's output patches.
+In the regions where the patches overlap, we just average the predictions from each patch (they tend to agree pretty well).
+
+\subsection{Model Output}
+The model outputs probabilities (sort of --- I think there's some technical reason why they aren't really probabilities, but it outputs a number between 0 and 1 for each voxel),
+which we threshold to get the final prediction mask. We then clean it up - we know the jaw has to be a single, contiguous bone, so
+we remove any voxels that aren't attached to the largest connected component in the segmentation mask.
+
+Here are some slices through a jaw:
+\begin{figure}[H]
+    \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/test\_pred.png}
+    \includegraphics[width=0.45\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/test\_truth.png}
+    \caption{
+        Jaw segmentation prediction vs truth; slices through the thing
+    }
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/wt.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant3.png}
+    \includegraphics[trim=100 100 140 0, clip, width=0.75\textwidth]{assets/mutant2.png}
+    \label{jaws}
+    \caption{
+        Some examples of projections of the jaws.
+        The colourbar shows greyscale value (density).
+        These were extracted from Wahab's TIFS dataset on the RDSF, by putting the TIFS through
+        our location/segmentation/thresholding pipeline.
+        I think some of these are mutants.
+    }
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width=\textwidth]{../../script\_output/jaw\_models/example\_segmenter/train\_output/loss.png}
+    \caption{
+        Jaw segmentation loss. Not sure what the big spikes in the validation loss are.
+    }
+\end{figure}
+
+\section{Future Work}
+There's a decent amount of stuff you could do with these models.
+The obvious thing is to use them to segment out lots of jaws then do some useful analysis with the segmentation masks.
+
+There are also a few obvious data science extensions, which I've briefly outlined below.
+There's more detail on these, intended for a new person starting work on this project,
+at \url{http://www.github.com/JGIBristol/Zebrafish_Osteoarthritis/issues}.
+Others may be more immediately useful or interesting, depending on what's going on in the research group.
+
+\subsection{Shape Analysis}
+\subsubsection{Fine-tuning on Other Bones}
+We want to fine-tune the model(s) to segment out other bones, e.g. the spine.
+I've written a rough example showing this on another dataset; all we need to do is investigate
+how well fine-tuning works on the new spine dataset.
+
+\subsubsection{Auto Mesh}
+At the moment we mesh the segmentations manually.
+This is quite time-consuming; it should be possible to train a model to do this for us.
+Cubic meshing is quite easy, once we have the segmentation mask.
+A more complete workflow might take us straight from CT scan to a tetrahedral mesh.
+
+\subsubsection{Shapeworks}
+Software exists for automatic shape analysis.
+We can do semilandmarking, normalisation and PCA to find out where the major shape differences
+are located on the jaws.
+This is useful for answering questions about how and where age/mutations/sex affect the bones.
+
+\subsubsection{Multimodal Model for Multiple Bones}
+The end goal would be a model that looks at the entire CT scan and segments out all the bones
+with different labels. Perhaps there have been more recent advances in foundation models for
+CT images which might help here.
+
+\subsection{Density Analysis}
+\subsubsection{Greyscale analysis}
+We can see the muscle attachments in the images (Fig~\ref{jaws}).
+They show up as regions of denser bone; we might want to investigate how the density at these
+attachment sites changes, in absolute terms and relative to the rest of the bone, with age/mutation.
+
+\subsubsection{Radiomic Feature Selection}
+Radiomic features are things like greyscale patchiness/size/shape that are useful for radiologists.
+We can extract radiomic features from our jaw dataset and see which ones are most useful for describing
+the variation between aged/young/mutant fish.
+This is useful since we can make hypotheses about the effect of density, and its distribution, and how
+that affects fracture risk and bone optimality.
+
+\subsubsection{Find Muscle Attachments}
+You can see the muscle attachments in Fig~\ref{jaws}. To do the bone density analyis, we might
+want to precisely locate them.
+We could either do this by trying to come up with some simple greyscale-based rules,
+or with another ML model.
+
+\subsection{Existing Model Improvements}
+\subsubsection{Model Ensemble}
+At the moment, we just use one model for each task. There is some randomness involved in the training process, though
+and we can exploit that by using an ensemble of models. This should, in some sense, average out the bias from our single model
+and give us better results (e.g. if the segmentation model systematically under/overpredicts, an ensemble might help with this).
+We can get this ``for free'', since we don't need to do anything special --- just train a load more models, then come up with
+some way of combining their predictions (e.g. averaging, or some voting system).
+
+\subsubsection{Ablation study}
+As part of the fine-tuning study, I tried turning off the segmentation model's attention mechanism in selected layers.
+The attention mechanisms suppress information passing though the skip connections --- when we turn these off, the model loses the
+ability to ``focus on the important bits''.
+Interestingly, it looked like there was very little effect from turning the attention in layers 1, 4 and 5 off.
+However, turning the attention mechanism off in layers 2 or 3 had a huge effect:
+\begin{figure}[H]
+    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_2.png}
+    \includegraphics[width=0.8\textwidth]{../../script\_output/ablation/example\_segmenter/ablation\_273\_3.png}
+    \caption{
+        Ablation study - turning layers 2 or 3 ``off'' seems to segment out all the bones in the fish head.
+        This doesn't happen with the other layers, which is suggestive that the attention isn't doing much here.
+        It is also suggestive that something is going on where the model is separately learning the shape and density
+        of the target bone --- could we use this to understand how the model works, or to inform our fine-tuning studies?
+    }
+\end{figure}
+NB I think one of STFC's priorities at the moment is on ``explainable AI'', so this might be a good thing to mention in grant applications.
+
+\end{document}
